@@ -1,0 +1,23 @@
+# Binaries da build
+*.exe
+*.exe~
+*.out
+*.ox
+*.test
+
+# Diretórios de dependências e caches
+vendor/
+*.lock
+
+# Arquivos temporários e de log
+*.log
+*.tmp
+*.temp
+
+# Arquivos de configuração específicos do IDE
+.idea/
+*.swp
+*.swo
+
+# Cache do Go
+.cache/

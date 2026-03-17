@@ -54,6 +54,12 @@ type Maze struct {
 	NumExplored int
 	Debug bool
 	SearchType int
+	Animate bool
+}
+
+func init() {
+	_ = os.Mkdir("./tmp", os.ModePerm)
+	emptyTmp()
 }
 
 func main() {
@@ -62,6 +68,8 @@ func main() {
 
 	flag.StringVar(&maze, "file", "maze.txt", "maze file")
 	flag.StringVar(&searchType, "search", "dfs", "search type")
+	flag.BoolVar(&m.Debug, "debug", false, "write debugging info")
+	flag.BoolVar(&m.Animate, "animate", false, "produce animation")
 	flag.Parse()
 
 	err := m.Load(maze)
@@ -93,6 +101,12 @@ func main() {
 	}
 
 	fmt.Println("Explored:", len(m.Explored), "nodes")
+
+	if m.Animate {
+		fmt.Println("Building animation...")
+		m.OutputAnimatedImage()
+		fmt.Println("Done!")
+	}
 }
 
 func (g *Maze) printMaze() {

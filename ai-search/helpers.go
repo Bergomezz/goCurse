@@ -14,13 +14,20 @@ func inExplored(needle Point, haystack []Point) bool {
 func emptyTmp() {
 	directory := "./tmp/"
 	dir, _ := os.Open(directory)
-filesToDelete, _ := dir.ReadDir(0)
+	filesToDelete, _ := dir.ReadDir(0)
 
-for index := range filesToDelete {
-	f := filesToDelete[index]
-	fullPath := directory + f.Name()
+	for index := range filesToDelete {
+		f := filesToDelete[index]
+		fullPath := directory + f.Name()
 
-	_ = os.Remove(fullPath)
+		_ = os.Remove(fullPath)
+	}
+
 }
 
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }

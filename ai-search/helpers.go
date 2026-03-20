@@ -1,6 +1,9 @@
 package main
 
-import "os"
+import (
+	"math"
+	"os"
+)
 
 func inExplored(needle Point, haystack []Point) bool {
 	for _, x := range haystack {
@@ -30,4 +33,10 @@ func abs(x int) int {
 		return -x
 	}
 	return x
+}
+
+
+func euclideanDist(p, goal Point) float64 {
+	return math.Sqrt(
+		float64(p.Row-goal.Row)*float64(p.Row-goal.Row) + float64(p.Col-goal.Col)*float64(p.Col-goal.Col))
 }

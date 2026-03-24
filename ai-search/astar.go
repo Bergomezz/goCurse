@@ -9,6 +9,9 @@ import (
 	"slices"
 )
 
+const FloodedCost = 100
+
+
 type AstarSearch struct {
 	Frontier PriorityQueueAstar
 	Game     *Maze
@@ -21,6 +24,9 @@ func (d *AstarSearch) GetFrontier() []*Node {
 func (d *AstarSearch) Add(i *Node) {
 	i.CostToGoal = i.ManhattanDistance(d.Game.Start)
   i.EstimatedCostGoal = euclideanDist(i.State, d.Game.Goal) + float64(i.CostToGoal)
+  if i.State.Water {
+    i.EstimatedCostGoal += FloodedCost
+  }
   d.Frontier.Push(i)
   heap.Init(&d.Frontier)
 }
@@ -149,6 +155,9 @@ func (d *AstarSearch) Neighbors(node *Node) []*Node {
 		if 0 <= x.State.Row && x.State.Row < d.Game.Height {
 			if 0 <= x.State.Col && x.State.Col < d.Game.Width {
 				if !d.Game.Wall[x.State.Row][x.State.Col].wall {
+          if d.Game.Wall[x.State.Row][x.State.Col].State.Water {
+            x.State.Water = true
+          }
 					neighbors = append(neighbors, x)
 				}
 			}

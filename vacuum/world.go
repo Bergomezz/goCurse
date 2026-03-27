@@ -125,3 +125,70 @@ func LoadRoomConfig(filename string) (*RoomConfig, error){
 
   return &config, nil
 }
+
+func (room *Room) Display(robot *Robot, showPath bool) {
+  /*if the bellow function doesn't work, you can use the github.com/inancgumus/screen
+  with the follow function screen.Cleaner()*/
+  // Clean the screen
+  fmt.Print("\033[H\033[2J")
+
+  for j := range room.Height{
+    for i := range room.Width {
+      if robot.Position.X == i && robot.Position.Y == j {
+        fmt.Print(charRobot)
+      }else if showPath && isInPath(Point{X: i, Y: j}, robot.Path){
+        fmt.Print(charPath)
+      }else {
+        cell := room.Grid[i][j]
+        switch cell.Type {
+        case "wall":
+          fmt.Print(charWall)
+        case "furniture":
+          fmt.Print(charFurniture)
+        case "clean":
+          fmt.Print(charClean)
+        case "dirty":
+          fmt.Print(charDirty)
+        }
+      }
+    }
+    fmt.Println()
+  }
+
+  // Display cleaning progress
+  percentCleaned := float64(room.CleanedCellCount)/float64(room.CleanableCellCount) * 100
+  fmt.Printf("Cleaning Progress: %.2f%% (%d/%d cells cleaned)\n", percentCleaned, room.CleanedCellCount, room.CleanableCellCount)
+}
+
+func isInPath(point Point, path []Point) bool{
+  for _, p := range path {
+    if p.X == point.X && p.Y == point.Y {
+      return true
+    }
+  }
+  return false
+}
+
+func displaySummary(room *Room, robot *Robot, moveCount int, cleaningTime time.Duration) {
+  // Display the final room state with the robot's path
+  fmt.Println("\nFinal room state with robot path")
+  room.Display(robot, true)
+
+  fmt.Println("\n========== Cleaning Summary ===========")
+  fmt.Printf("Room size: %d x %d (%d cm x %d cm)\n", room.Width, room.Height, room.Width * cellSize, room.Height * cellSize)
+
+  // Calculate coverage percentage
+  percentCleaned := float64(room.CleanedCellCount)/float64(room.CleanableCellCount) * 100
+  fmt.Printf("Coverage: %.2f%% (%d/%d cells cleaned)\n", percentCleaned, room.CleanedCellCount, room.CleanableCellCount)
+
+  // Display time and moves
+  fmt.Printf("Total moves: %d \n", moveCount)
+  fmt.Printf("Cleaning time: %v \n", cleaningTime)
+
+  // TODO Calculate efficiency (cells cleaned per move)
+  efficiency := float64(room.CleanedCellCount)/float64(moveCount)
+  fmt.Printf("Efficiency: %.2f cells cleaned per move\n", efficiency)
+
+  fmt.Println()
+  fmt.Println("===============================")
+}

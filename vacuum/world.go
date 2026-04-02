@@ -88,7 +88,7 @@ func NewRoom(configFile string, animate bool) *Room {
     grid[gridWidth-1][j] = Cell{Type: "wall", Cleaned: false, Obstacle: true, ObstacleName: "wall"}
   }
 
-  // TODO Add furniture
+  // Add furniture
   for _, f := range roomConfig.Furniture {
     x := f.X / cellSize
     y := f.Y / cellSize
@@ -203,4 +203,8 @@ func displaySummary(room *Room, robot *Robot, moveCount int, cleaningTime time.D
 
   fmt.Println()
   fmt.Println("===============================")
+}
+
+func (room *Room) IsValid(x, y int) bool {
+  return x >= 0 && x < room.Width && y >= 0 && y < room.Height && !room.Grid[x][y].Obstacle
 }

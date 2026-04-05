@@ -23,6 +23,8 @@ func main() {
   switch algorithm {
   case "random":
     robot.CleanRoom = CleanRoomRandomWalk
+  case "slam":
+    robot.CleanRoom = CleanRoomSlam
   default:
     // Do nothing
   }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -197,12 +198,31 @@ func displaySummary(room *Room, robot *Robot, moveCount int, cleaningTime time.D
   fmt.Printf("Total moves: %d \n", moveCount)
   fmt.Printf("Cleaning time: %v \n", cleaningTime)
 
-  // TODO Calculate efficiency (cells cleaned per move)
+  // Calculate efficiency (cells cleaned per move)
   efficiency := float64(room.CleanedCellCount)/float64(moveCount)
   fmt.Printf("Efficiency: %.2f cells cleaned per move\n", efficiency)
 
+  // Display encountered obstacle
+  obstacles := getEncounteredObstaclesList(robot)
+
+  if len(obstacles) > 0 {
+    fmt.Printf("Encountered: %s\n", strings.Join(obstacles, ", "))
+  }else {
+    fmt.Println("No obstacle encountered")
+  }
+
   fmt.Println()
   fmt.Println("===============================")
+}
+
+func getEncounteredObstaclesList(robot *Robot) []string {
+  var obstacles []string
+  for name := range robot.ObstaclesEncountered {
+    if name != "wall" {
+      obstacles = append(obstacles, name)
+    }
+  }
+  return obstacles
 }
 
 func (room *Room) IsValid(x, y int) bool {

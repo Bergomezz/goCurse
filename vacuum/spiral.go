@@ -24,7 +24,7 @@ func CleanSpiralPattern(room *Room, robot *Robot) {
       Clean(robot, room)
 
       if room.Animate {
-        room.Display(robot, false)
+        room.Display(robot, room.Cat, false)
         time.Sleep(moveDelay)
       }
 
@@ -56,7 +56,7 @@ func CleanSpiralPattern(room *Room, robot *Robot) {
       Clean(robot, room)
 
       if room.Animate {
-        room.Display(robot, false)
+        room.Display(robot, room.Cat, false)
         time.Sleep(moveDelay)
       }
       moveCount++
@@ -89,7 +89,7 @@ func finalCleanup(room *Room, robot *Robot, moveCount *int) {
           robot.Path = append(robot.Path, robot.Position)
           Clean(robot, room)
           if room.Animate {
-            room.Display(robot, false)
+            room.Display(robot, room.Cat, false)
             time.Sleep(moveDelay)
           }
           *moveCount++

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -33,6 +34,10 @@ type Cell struct {
 	ObstacleName string
 }
 
+type House struct {
+  Rooms []*Room
+}
+
 type Furniture struct {
 	X      int    `json:"x"`
 	Y      int    `json:"y"`
@@ -49,6 +54,7 @@ type Room struct {
 	CleanableCellCount int
 	CleanedCellCount   int
 	Animate            bool
+  Cat                *Cat
 }
 
 type RoomConfig struct {
@@ -122,6 +128,91 @@ func NewRoom(configFile string, animate bool) *Room {
   }
 }
 
+func NewHouse(configFile string, animate bool) *House {
+  houseConfig, err := LoadHouseConfig(configFile)
+  if err != nil {
+    fmt.Println(err)
+    os.Exit(1)
+  }
+
+  var house House
+  for _, room := range houseConfig {
+    // Convert dimension to grid cells
+    gridWidth := room.Width/cellSize
+    gridHeight := room.Height/cellSize
+
+    // Create a grid
+    grid := make([][]Cell,gridWidth)
+    for i := range grid {
+      grid[i] = make([]Cell, gridHeight)
+      for j := range grid[i] {
+        grid[i][j] = Cell{Type: "dirty", Cleaned: false, Obstacle: false}
+      }
+    }
+
+    // Add walls
+    for i := range gridWidth {
+      grid[i][0] = Cell{Type: "wall", Cleaned: false, Obstacle: true, ObstacleName: "wall"}
+      grid[i][gridHeight-1] = Cell{Type: "wall", Cleaned: false, Obstacle: true, ObstacleName: "wall"}
+    }
+
+    for j := range gridHeight {
+      grid[0][j] = Cell{Type: "wall", Cleaned: false, Obstacle: true, ObstacleName: "wall"}
+      grid[gridWidth-1][j] = Cell{Type: "wall", Cleaned: false, Obstacle: true, ObstacleName: "wall"}
+    }
+
+    // Add furniture
+    for _, f := range room.Furniture {
+      x := f.X / cellSize
+      y := f.Y / cellSize
+
+      width := f.Width / cellSize
+      height := f.Height / cellSize
+      for i := x; i <x+width; i++ {
+        for j := y; j <y+height; j++ {
+          grid[i][j] = Cell{Type: "furniture", Cleaned: false, Obstacle: true, ObstacleName: f.Name}
+        }
+      }
+    }
+
+    // Count cleanable cells
+    cleanableCellCount := 0
+    for i := range gridWidth {
+      for j := range gridHeight {
+        if !grid[i][j].Obstacle {
+          cleanableCellCount++
+        }
+      }
+    }
+
+    r := Room{
+      Grid: grid,
+      Width: gridWidth,
+      Height: gridHeight,
+      CleanableCellCount: cleanableCellCount,
+      CleanedCellCount: 0,
+      Animate: animate,
+    }
+    house.Rooms = append(house.Rooms, &r)
+  }
+  return &house
+}
+
+func LoadHouseConfig(filename string) ([]RoomConfig, error) {
+  // REad file
+  jsonData, err := os.ReadFile(filename)
+  if err != nil {
+    return nil, fmt.Errorf("Error reading config file: %v", err)
+  }
+
+  var config []RoomConfig
+  if err := json.Unmarshal(jsonData, &config); err != nil {
+    return nil, fmt.Errorf("Error parsing JSON: %v", err)
+  }
+
+  return config, nil
+}
+
 func LoadRoomConfig(filename string) (*RoomConfig, error){
   // Read JSON file
   jsonData, err := os.ReadFile(filename)
@@ -138,7 +229,7 @@ func LoadRoomConfig(filename string) (*RoomConfig, error){
   return &config, nil
 }
 
-func (room *Room) Display(robot *Robot, showPath bool) {
+func (room *Room) Display(robot *Robot, cat *Cat, showPath bool) {
   /*if the bellow function doesn't work, you can use the github.com/inancgumus/screen
   with the follow function screen.Cleaner()*/
   // Clean the screen
@@ -148,6 +239,8 @@ func (room *Room) Display(robot *Robot, showPath bool) {
     for i := range room.Width {
       if robot.Position.X == i && robot.Position.Y == j {
         fmt.Print(charRobot)
+      }else if cat != nil && cat.Position.X == i && cat.Position.Y == j {
+        fmt.Print(charCat)
       }else if showPath && isInPath(Point{X: i, Y: j}, robot.Path){
         fmt.Print(charPath)
       }else {
@@ -170,6 +263,11 @@ func (room *Room) Display(robot *Robot, showPath bool) {
   // Display cleaning progress
   percentCleaned := float64(room.CleanedCellCount)/float64(room.CleanableCellCount) * 100
   fmt.Printf("Cleaning Progress: %.2f%% (%d/%d cells cleaned)\n", percentCleaned, room.CleanedCellCount, room.CleanableCellCount)
+
+  if cat != nil {
+    fmt.Printf("Robot position: (%d, %d), Cat position: (%d, %d)\n",
+    robot.Position.X, robot.Position.Y, cat.Position.X, cat.Position.Y)
+  }
 }
 
 func isInPath(point Point, path []Point) bool{
@@ -184,7 +282,7 @@ func isInPath(point Point, path []Point) bool{
 func displaySummary(room *Room, robot *Robot, moveCount int, cleaningTime time.Duration) {
   // Display the final room state with the robot's path
   fmt.Println("\nFinal room state with robot path")
-  room.Display(robot, true)
+  room.Display(robot, room.Cat, false)
 
   fmt.Println("\n========== Cleaning Summary ===========")
   fmt.Printf("Room size: %d x %d (%d cm x %d cm)\n", room.Width, room.Height, room.Width * cellSize, room.Height * cellSize)
@@ -197,12 +295,31 @@ func displaySummary(room *Room, robot *Robot, moveCount int, cleaningTime time.D
   fmt.Printf("Total moves: %d \n", moveCount)
   fmt.Printf("Cleaning time: %v \n", cleaningTime)
 
-  // TODO Calculate efficiency (cells cleaned per move)
+  // Calculate efficiency (cells cleaned per move)
   efficiency := float64(room.CleanedCellCount)/float64(moveCount)
   fmt.Printf("Efficiency: %.2f cells cleaned per move\n", efficiency)
 
+  // Display encountered obstacle
+  obstacles := getEncounteredObstaclesList(robot)
+
+  if len(obstacles) > 0 {
+    fmt.Printf("Encountered: %s\n", strings.Join(obstacles, ", "))
+  }else {
+    fmt.Println("No obstacle encountered")
+  }
+
   fmt.Println()
   fmt.Println("===============================")
+}
+
+func getEncounteredObstaclesList(robot *Robot) []string {
+  var obstacles []string
+  for name := range robot.ObstaclesEncountered {
+    if name != "wall" {
+      obstacles = append(obstacles, name)
+    }
+  }
+  return obstacles
 }
 
 func (room *Room) IsValid(x, y int) bool {
